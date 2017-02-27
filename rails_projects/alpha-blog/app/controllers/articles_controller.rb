@@ -1,10 +1,18 @@
 class ArticlesController < ApplicationController
-  
+  # all before_actions must be listed in order 
   # call the set_article method befor calling the other actions listed
   before_action :set_article, only: [:edit, :update, :show, :destroy] 
+  # except for index,show all others require user 
+  before_action :require_user, except: [:index, :show]
+  # only allow users to edit, update, destroy their own articles
+  before_action :require_same_user, only: [:edit, :update, :destroy]
   def index
-    # Grab all the articles from database
-    @articles = Article.all
+    ## Grab all the articles from database
+    #@articles = Article.all
+    ## paginate gem now installed 
+    ## will load default items per page instead of all as before or specify
+    @articles = Article.paginate(page: params[:page], per_page:5)
+    
   end
   
   def new
@@ -19,7 +27,10 @@ class ArticlesController < ApplicationController
     # add the passed in params to article
     @article = Article.new(article_params)
     ## hard code user for temp
-    @article.user = User.first
+    ##@article.user = User.first
+    ## changed to use the current_user now
+    @article.user = current_user
+    
     if @article.save
       # flash to show a notice/message back to user
       flash[:success] = "Article was successfully created."
@@ -68,5 +79,11 @@ class ArticlesController < ApplicationController
     params.require(:article).permit(:title, :description)
   end
   
+  def  require_same_user
+   if current_user != @article.user
+     flash[:danger] = "You can only edit or delete your own article"
+     redirect_to root_path
+   end
+  end
   
 end  
